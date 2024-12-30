@@ -1,9 +1,10 @@
 export interface DataTableFilterField<T> {
-  type: "checkbox" | "timerange" | "input";
+  type: "checkbox" | "timerange" | "input" | "slider";
   label: string;
   value: keyof T;
   defaultOpen: boolean;
   options?: { label: string; value: string }[];
+  commandDisabled?: boolean;
 }
 
 export interface DocumentTableMeta {

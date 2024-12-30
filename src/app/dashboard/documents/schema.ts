@@ -39,7 +39,7 @@ export const documentFilterSchema = z.object({
     .transform((val) => val.split("-").map(Number))
     .pipe(z.coerce.date().array())
     .optional(),
-  rpic: z.string().optional(),
+  userId: z.string().optional(),
 });
 
 export type DocumentFilterSchema = z.infer<typeof documentFilterSchema>;

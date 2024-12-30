@@ -36,8 +36,8 @@ export async function fetchDocuments(): Promise<DocumentSchema[]> {
         email: doc.user.email,
         name: doc.user.name
       },
-      documentType: doc.content.includes('POWRA') ? 'POWRA' as const : 
-                   doc.content.includes('FPL_MISSION') ? 'FPL_MISSION' as const : 
+      documentType: doc.title.includes('POWRA') ? 'POWRA' as const : 
+                   doc.title.includes('FPL Mission') ? 'FPL_MISSION' as const : 
                    'TAILBOARD' as const
     }));
   } catch (error) {
@@ -72,8 +72,8 @@ export async function approveDocument(documentId: string): Promise<DocumentSchem
     // Transform to match DocumentSchema
     const result: DocumentSchema = {
       ...document,
-      documentType: document.content.includes('POWRA') ? 'POWRA' as const : 
-                   document.content.includes('FPL_MISSION') ? 'FPL_MISSION' as const : 
+      documentType: document.title.includes('POWRA') ? 'POWRA' as const : 
+                   document.title.includes('FPL Mission') ? 'FPL_MISSION' as const : 
                    'TAILBOARD' as const
     };
 
@@ -120,8 +120,8 @@ export async function deleteDocument(documentId: string): Promise<DocumentSchema
     // Transform to match DocumentSchema
     const result: DocumentSchema = {
       ...document,
-      documentType: document.content.includes('POWRA') ? 'POWRA' as const : 
-                   document.content.includes('FPL_MISSION') ? 'FPL_MISSION' as const : 
+      documentType: document.title.includes('POWRA') ? 'POWRA' as const : 
+                   document.title.includes('FPL Mission') ? 'FPL_MISSION' as const : 
                    'TAILBOARD' as const
     };
 

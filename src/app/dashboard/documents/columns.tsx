@@ -58,7 +58,6 @@ export const columns: ColumnDef<DocumentSchema>[] = [
         </Badge>
       );
     },
-    filterFn: "arrIncludesSome",
   },
   {
     accessorKey: "status",
@@ -71,27 +70,36 @@ export const columns: ColumnDef<DocumentSchema>[] = [
         <Badge
           variant={
             status === "APPROVED"
-              ? "default"
-              : status === "REJECTED"
-              ? "destructive"
-              : status === "PENDING"
               ? "secondary"
+              : status === "PENDING"
+              ? "default"
               : "outline"
+          }
+          className={
+            status === "APPROVED"
+              ? "bg-green-500 hover:bg-green-500/80"
+              : status === "PENDING"
+              ? "bg-yellow-500 hover:bg-yellow-500/80 text-black"
+              : ""
           }
         >
           {status}
         </Badge>
       );
     },
-    filterFn: "arrIncludesSome",
+    filterFn: (row, id, filterValue: string[]) => {
+      const status = row.getValue(id) as string;
+      return !filterValue.length || filterValue.includes(status);
+    },
   },
   {
-    accessorKey: "user",
+    accessorKey: "userId",
+    id: "user",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="RPIC" />
     ),
     cell: ({ row }) => {
-      const user = row.getValue("user") as { name: string | null; email: string };
+      const user = row.original.user;
       return (
         <div className="flex flex-col">
           <span className="font-medium">{user.name || "Unnamed"}</span>
@@ -99,7 +107,6 @@ export const columns: ColumnDef<DocumentSchema>[] = [
         </div>
       );
     },
-    filterFn: "arrIncludesSome",
   },
   {
     accessorKey: "updatedAt",

@@ -29,7 +29,7 @@ export const searchParamsParser = {
   documentType: parseAsArrayOf(parseAsStringLiteral(["POWRA", "FPL_MISSION", "TAILBOARD"]), ARRAY_DELIMITER),
   createdAt: parseAsArrayOf(parseAsTimestamp, RANGE_DELIMITER),
   updatedAt: parseAsArrayOf(parseAsTimestamp, RANGE_DELIMITER),
-  rpic: parseAsString,
+  userId: parseAsString,
   // Required for sorting & pagination
   sort: parseAsSort,
   size: parseAsInteger.withDefault(10),

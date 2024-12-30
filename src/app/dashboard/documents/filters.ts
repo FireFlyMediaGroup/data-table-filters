@@ -12,6 +12,7 @@ export const filterFields: DataTableFilterField<DocumentSchema>[] = [
       label: status,
       value: status,
     })),
+    commandDisabled: false,
   },
   {
     type: "checkbox",
@@ -23,23 +24,27 @@ export const filterFields: DataTableFilterField<DocumentSchema>[] = [
       { label: "FPL Mission", value: "FPL_MISSION" },
       { label: "Tailboard", value: "TAILBOARD" },
     ],
+    commandDisabled: false,
   },
   {
     type: "timerange",
     label: "Created At",
     value: "createdAt",
     defaultOpen: false,
+    commandDisabled: false,
   },
   {
     type: "timerange",
     label: "Updated At",
     value: "updatedAt",
     defaultOpen: false,
+    commandDisabled: false,
   },
   {
     type: "input",
     label: "RPIC",
-    value: "user",
+    value: "userId",
     defaultOpen: false,
+    commandDisabled: false,
   },
 ];

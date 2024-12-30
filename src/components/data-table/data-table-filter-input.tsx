@@ -1,12 +1,13 @@
 "use client";
 
 import type { Table } from "@tanstack/react-table";
-import type { DataTableInputFilterField } from "./types";
-import { InputWithAddons } from "@/components/custom/input-with-addons";
-import { Label } from "@/components/ui/label";
+import type { DataTableFilterField } from "./types";
+import { InputWithAddons } from "../../components/custom/input-with-addons";
+import { Label } from "../../components/ui/label";
 import { Search } from "lucide-react";
 
-type DataTableFilterInputProps<TData> = DataTableInputFilterField<TData> & {
+type DataTableFilterInputProps<TData> = DataTableFilterField<TData> & {
+  type: "input";
   table: Table<TData>;
 };
 
@@ -29,8 +30,8 @@ export function DataTableFilterInput<TData>({
         placeholder="Search"
         leading={<Search className="mt-0.5 h-4 w-4" />}
         containerClassName="h-9 rounded-lg"
-        name={value}
-        id={value}
+        name={`filter-input-${value}`}
+        id={`filter-input-${value}`}
         value={filters}
         onChange={(e) => {
           const val = e.target.value;
