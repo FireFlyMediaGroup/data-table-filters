@@ -215,7 +215,7 @@ export async function POST(request: Request) {
       console.log("Final data structure:", data);
 
       // Use a transaction for atomicity
-      const powra = await prisma.$transaction(async (tx) => {
+      const powra = await prisma.$transaction(async (tx: any) => {
         console.log("Starting database transaction...");
         
         // Test connection with a simple query

@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "tsc": "tsc",
-    "seed": "tsx scripts/seed-documents.ts"
+    "seed": "tsx scripts/seed-documents.ts",
+    "setup-rls": "tsx scripts/setup-rls.ts",
+    "update-metadata": "tsx scripts/update-user-metadata.ts"
   },
   "dependencies": {
     "@date-fns/utc": "^2.1.0",

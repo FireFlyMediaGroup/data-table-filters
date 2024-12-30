@@ -1,4 +1,4 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { SidebarNav } from '../../components/dashboard/sidebar-nav';
 
@@ -7,17 +7,38 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createServerComponentClient({ cookies });
+  console.log('Dashboard layout: Setting up Supabase client');
+  const cookieStore = cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name) => {
+          const cookie = cookieStore.get(name);
+          console.log(`Getting cookie ${name}:`, cookie?.value ? "Present" : "Not found");
+          return cookie?.value;
+        },
+        set: () => {},
+        remove: () => {},
+      },
+    }
+  );
   
-  // Get authenticated user with metadata
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  console.log('Dashboard layout: Getting session');
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   
-  if (!user || userError) {
-    return null; // Auth middleware will handle redirect
+  if (!session || sessionError) {
+    console.error('Dashboard layout: Session error:', sessionError);
+    throw new Error('Authentication required');
   }
 
-  // Get role from user metadata
-  const userRole = user.user_metadata?.role || 'user';
+  console.log('Dashboard layout: Session found:', {
+    userId: session.user.id,
+    role: session.user.user_metadata?.role
+  });
+
+  const userRole = session.user.user_metadata?.role || 'user';
 
   return (
     <div className="flex h-screen">
