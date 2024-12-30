@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
 
 export default function Login() {
@@ -11,12 +11,16 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   // Handle error messages from callback
   useEffect(() => {
     const url = new URL(window.location.href);
     const error = url.searchParams.get('error');
+    const message = url.searchParams.get('message');
     
     if (error) {
       switch (error) {
@@ -29,15 +33,22 @@ export default function Login() {
         case 'no_session':
           setMessage('Session creation failed. Please try again.');
           break;
+        case 'unauthorized':
+          setMessage(message || 'You are not authorized to access this application.');
+          break;
+        case 'link_expired':
+          setMessage(message || 'Magic link has expired. Please request a new one by logging in again.');
+          break;
         case 'unknown':
           setMessage('An unknown error occurred. Please try again.');
           break;
         default:
-          setMessage('Login failed. Please try again.');
+          setMessage(message || 'Login failed. Please try again.');
       }
       
-      // Clear the error from URL
+      // Clear the error and message from URL
       url.searchParams.delete('error');
+      url.searchParams.delete('message');
       window.history.replaceState({}, '', url.toString());
     }
   }, []);
@@ -48,34 +59,17 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // First, verify email and password
-      const { data: pwData, error: pwError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (pwError) {
-        console.error('Password verification error:', pwError);
-        throw pwError;
+      if (error) {
+        console.error('Login error:', error);
+        throw error;
       }
 
-      if (pwData.user) {
-        console.log('Password verified, sending magic link...');
-        // If password is correct, send magic link for 2FA
-        const { error: otpError } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-
-        if (otpError) {
-          console.error('Magic link error:', otpError);
-          throw otpError;
-        }
-
-        setMessage('Magic link sent! Check your email to complete login. You will be redirected to the dashboard after clicking the link.');
-      }
+      // Successful login will trigger a redirect through the callback
     } catch (error: any) {
       console.error('Login error:', error);
       setMessage(error.message || 'Invalid email or password.');
@@ -149,7 +143,7 @@ export default function Login() {
               isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
             }`}
           >
-            {isLoading ? 'Sending Magic Link...' : 'Login with Email'}
+            {isLoading ? 'Logging in...' : 'Login with Email'}
           </button>
         </form>
         <div className="mt-4">
@@ -165,7 +159,7 @@ export default function Login() {
         </div>
         {message && (
           <div className={`mt-4 p-4 rounded text-center ${
-            message.includes('Magic link sent!') 
+            message.includes('Redirecting') 
               ? 'bg-green-100 text-green-700'
               : 'bg-red-100 text-red-700'
           }`}>

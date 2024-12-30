@@ -17,6 +17,9 @@ export async function middleware(req: NextRequest) {
           get: (name) => {
             const cookie = req.cookies.get(name);
             console.log(`Getting cookie ${name}:`, cookie?.value ? "Present" : "Not found");
+            if (name === 'sb-access-token' || name === 'sb-refresh-token') {
+              console.log(`Auth cookie ${name} value:`, cookie?.value);
+            }
             return cookie?.value;
           },
           set: (name, value, options) => {
@@ -25,6 +28,9 @@ export async function middleware(req: NextRequest) {
               name,
               value,
               ...options,
+              path: '/',
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
             });
           },
           remove: (name, options) => {
@@ -33,6 +39,8 @@ export async function middleware(req: NextRequest) {
               name,
               value: '',
               ...options,
+              path: '/',
+              maxAge: 0,
             });
           },
         },
@@ -53,6 +61,7 @@ export async function middleware(req: NextRequest) {
     // Check if the user is authenticated
     if (!session) {
       console.log("No session found");
+      console.log("Available cookies:", Array.from(req.cookies.getAll()).map(c => c.name));
       
       // For API routes, return 401 Unauthorized
       if (req.nextUrl.pathname.startsWith('/api')) {

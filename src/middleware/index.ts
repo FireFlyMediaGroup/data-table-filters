@@ -12,14 +12,19 @@ export async function middleware(req: NextRequest) {
     console.log("\n--- Running auth middleware ---");
     const authRes = await authMiddleware(req);
     
-    // If the auth middleware redirected or returned an error, return that response
-    if (authRes.status !== 200) {
-      console.log("Auth middleware returned non-200 status:", authRes.status);
-      if (authRes.headers.get('content-type')?.includes('application/json')) {
-        const body = await authRes.json();
-        console.log("Auth error response:", body);
-      }
+    // If the auth middleware redirected or returned an error response, return that response
+    if (authRes instanceof Response && authRes.headers.get('location')) {
+      console.log("Auth middleware returned redirect");
       return authRes;
+    }
+    
+    if (authRes instanceof Response && authRes.headers.get('content-type')?.includes('application/json')) {
+      console.log("Auth middleware returned JSON response");
+      const body = await authRes.json();
+      console.log("Auth response:", body);
+      if (body.error) {
+        return authRes;
+      }
     }
     
     console.log("Auth middleware passed");
