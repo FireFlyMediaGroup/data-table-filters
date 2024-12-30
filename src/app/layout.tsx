@@ -5,6 +5,7 @@ import "@/styles/globals.css";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import PlausibleProvider from "next-plausible";
 import { ReactQueryProvider } from "@/providers/react-query";
+import { Toaster } from "sonner";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -54,7 +55,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <PlausibleProvider domain="data-table.openstatus.dev">
-            <ReactQueryProvider>{children}</ReactQueryProvider>
+            <ReactQueryProvider>
+              {children}
+              <Toaster />
+            </ReactQueryProvider>
           </PlausibleProvider>
         </ThemeProvider>
       </body>

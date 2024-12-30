@@ -37,42 +37,27 @@ export async function rbacMiddleware(req: NextRequest) {
       }
     );
 
-    console.log("Getting session...");
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+    console.log("Getting user...");
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (sessionError) {
-      console.error("Session error:", sessionError);
-      throw sessionError;
+    if (userError) {
+      console.error("User error:", userError);
+      throw userError;
     }
 
-    if (!session) {
-      console.log("No session found in RBAC check");
+    if (!user) {
+      console.log("No user found in RBAC check");
       return res;
     }
 
-    console.log("Fetching user role...");
-    // Fetch user role from Supabase
-    const { data: userRole, error: roleError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
-
-    if (roleError || !userRole) {
-      console.error('Error fetching user role:', roleError);
-      throw new Error(`Failed to fetch user role: ${roleError?.message || 'Unknown error'}`);
-    }
-
-    const role = userRole.role;
+    // Get role from user metadata
+    const role = user.user_metadata?.role || 'user';
     console.log("User role:", role);
 
     // Define route access based on roles
     const roleAccess: { [key: string]: string[] } = {
       admin: ['/dashboard/admin', '/dashboard/documents', '/dashboard/forms'],
-      manager: ['/dashboard/documents', '/dashboard/forms'],
+      supervisor: ['/dashboard/documents', '/dashboard/forms'],
       user: ['/dashboard/documents', '/dashboard/forms'],
     };
 

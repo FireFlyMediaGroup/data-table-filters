@@ -12,11 +12,17 @@ datasource db {
 }
 
 
+enum UserRole {
+  user
+  supervisor
+  admin
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   name      String?
-  role      String
+  role      UserRole @default(user)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   documents Document[]
