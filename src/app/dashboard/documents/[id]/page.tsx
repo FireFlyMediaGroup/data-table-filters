@@ -1,42 +1,85 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Badge } from '../../../../components/ui/badge';
 import { format } from 'date-fns';
 
+import ErrorBoundary from './error-boundary';
+
 export default async function DocumentViewPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const supabase = createServerComponentClient({ cookies });
-  
-  // Get authenticated user
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  
-  if (!user || userError) {
-    return null; // Auth middleware will handle redirect
-  }
+  console.log('DocumentViewPage: Starting to render with ID:', params.id);
+  try {
+    console.log('DocumentViewPage: Setting up Supabase client');
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name) => {
+            const cookie = cookieStore.get(name);
+            console.log(`Getting cookie ${name}:`, cookie?.value ? "Present" : "Not found");
+            return cookie?.value;
+          },
+          set: () => {},
+          remove: () => {},
+        },
+      }
+    );
 
-  // Get document
-  const { data: document, error: documentError } = await supabase
-    .from('documents')
-    .select(`
-      *,
-      user:users (
-        name,
-        email
-      )
-    `)
-    .eq('id', params.id)
-    .single();
+    // Get session instead of user
+    console.log('DocumentViewPage: Getting session');
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (!session || sessionError) {
+      console.error('DocumentViewPage: Session error:', sessionError);
+      throw new Error('Authentication required');
+    }
+    
+    console.log('DocumentViewPage: Session found:', {
+      userId: session.user.id,
+      role: session.user.user_metadata?.role
+    });
 
-  if (documentError || !document) {
-    notFound();
-  }
+    console.log('DocumentViewPage: Fetching document');
+    const { data: document, error: documentError } = await supabase
+      .from('Document')
+      .select(`
+        *,
+        user:User (
+          name,
+          email
+        )
+      `)
+      .eq('id', params.id)
+      .single();
 
-  return (
+    console.log('DocumentViewPage: Supabase response:', { 
+      hasDocument: !!document, 
+      error: documentError?.message 
+    });
+
+    if (documentError) {
+      console.error('DocumentViewPage: Error fetching document:', documentError);
+      if (documentError.code === '42501' || documentError.message?.includes('permission denied')) {
+        throw new Error('You do not have permission to view this document');
+      }
+      notFound();
+    }
+
+    if (!document) {
+      console.log('DocumentViewPage: Document not found');
+      notFound();
+    }
+
+    console.log('DocumentViewPage: Successfully retrieved document');
+
+    return (
     <div className="container mx-auto p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">{document.title}</h1>
@@ -60,10 +103,6 @@ export default async function DocumentViewPage({
           </CardHeader>
           <CardContent>
             <dl className="space-y-4">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Type</dt>
-                <dd className="mt-1">{document.documentType.replace('_', ' ')}</dd>
-              </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Created</dt>
                 <dd className="mt-1">{format(new Date(document.createdAt), 'PPpp')}</dd>
@@ -93,5 +132,9 @@ export default async function DocumentViewPage({
         </Card>
       </div>
     </div>
-  );
+    );
+  } catch (error) {
+    console.error('Error in DocumentViewPage:', error);
+    throw error; // Let error.tsx handle the display
+  }
 }

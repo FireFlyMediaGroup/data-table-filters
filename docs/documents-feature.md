@@ -9,7 +9,7 @@
 5. [Data Flow](#data-flow)
 6. [Server Actions](#server-actions)
 7. [Database Schema](#database-schema)
-8. [Role-Based Access Control](#role-based-access-control)
+8. [Security & Authentication](#security--authentication)
 9. [Error Handling](#error-handling)
 10. [Audit Logging](#audit-logging)
 11. [Filter Configuration](#filter-configuration)
@@ -71,12 +71,90 @@ src/
 
 - **Next.js 14**: App Router, Server Components, Server Actions
 - **Prisma**: Database ORM
+- **Supabase**: Authentication and Row Level Security (RLS)
 - **TanStack Table**: Data table with filtering and sorting
 - **Shadcn/ui**: UI components
 - **PDF-lib**: PDF generation for download/print
 - **Sonner**: Toast notifications
 - **Zod**: Schema validation
 - **cmdk**: Command palette for search
+
+### Database Access
+
+The application uses a dual-database access approach:
+
+1. **Prisma**: Direct database access for server-side operations
+2. **Supabase**: RLS-protected access for client operations
+
+For detailed information about authentication, authorization, and security, see [Document Feature Authentication & Security](./documents-auth-security.md).
+
+### Client Creation
+
+The application uses different Supabase client creation methods based on the context:
+
+1. **Route Handlers**:
+```typescript
+// Use createRouteHandlerClient for route handlers
+const supabase = createRouteHandlerClient({ 
+  cookies: () => cookieStore 
+});
+```
+
+2. **Middleware**:
+```typescript
+// Use createServerClient for middleware
+const supabase = createServerClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    cookies: {
+      get: (name) => cookieStore.get(name)?.value,
+      set: (name, value, options) => {
+        try {
+          cookieStore.set(name, value, options);
+        } catch (error) {
+          // Read-only error in server component
+        }
+      },
+      remove: (name, options) => {
+        try {
+          cookieStore.set(name, '', { ...options, maxAge: 0 });
+        } catch (error) {
+          // Read-only error in server component
+        }
+      },
+    },
+  }
+);
+```
+
+3. **Server Components**:
+```typescript
+// Use createServerClient for server components
+const supabase = createServerClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    cookies: {
+      get: (name) => cookieStore.get(name)?.value,
+      set: (name, value, options) => {
+        try {
+          cookieStore.set(name, value, options);
+        } catch (error) {
+          // Read-only error in server component
+        }
+      },
+      remove: (name, options) => {
+        try {
+          cookieStore.set(name, '', { ...options, maxAge: 0 });
+        } catch (error) {
+          // Read-only error in server component
+        }
+      },
+    },
+  }
+);
+```
 
 ## Layout Structure
 
@@ -768,60 +846,29 @@ The documents feature implements comprehensive loading states and error handling
    ```
    Form submissions handle both validation errors and API errors with appropriate feedback.
 
-## Role-Based Access Control
+## Security & Authentication
 
-### User Roles
-```typescript
-// Types
-type UserRole = 'admin' | 'supervisor' | 'user';
+The document feature implements comprehensive security through:
 
-// Role-based permissions
-const canApprove = (userRole: UserRole, document: DocumentSchema) => 
-  (userRole === "admin" || userRole === "supervisor") && 
-  document.status === "PENDING";
+1. **Role-Based Access Control**:
+   - Three user roles: admin, supervisor, user
+   - Permission checks at database, API, and UI levels
+   - Row Level Security (RLS) policies
 
-const canDelete = (userRole: UserRole) => 
-  userRole === "admin" || userRole === "supervisor";
-```
+2. **Authentication Flow**:
+   - Supabase Auth integration
+   - Session management
+   - User metadata handling
 
-### Access Control Implementation
-```typescript
-// In columns.tsx
-{canApprove(userRole, document) && (
-  <DropdownMenuItem
-    onClick={() => meta?.onApprove(document)}
-    disabled={isLoading('approve')}
-  >
-    Approve
-  </DropdownMenuItem>
-)}
+3. **Security Layers**:
+   - Database-level RLS policies
+   - API route protection
+   - UI component guards
+   - Middleware checks
 
-// In middleware/rbac.ts
-export async function rbacMiddleware(
-  request: NextRequest,
-  response: NextResponse
-) {
-  const user = await getUser(request);
-  const path = request.nextUrl.pathname;
-  
-  // Check permissions
-  if (path.startsWith('/api/documents') && request.method === 'DELETE') {
-    if (!canDelete(user.role)) {
-      return new Response('Unauthorized', { status: 403 });
-    }
-  }
-  
-  return response;
-}
-```
-
-[Previous content continues unchanged...]
+For detailed information about security implementation, policies, and troubleshooting, see [Document Feature Authentication & Security](./documents-auth-security.md).
 
 ## Development Guidelines
-
-[Previous content continues unchanged...]
-
-This documentation provides a comprehensive overview of the documents feature, including its architecture, components, and implementation details. It should serve as a complete guide for developers working with this feature.
 
 ### Common Tasks
 

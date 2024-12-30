@@ -1,6 +1,6 @@
 'use server';
 
-import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { DocumentSchema } from './schema';
 import { auditLogger } from '../../../utils/auditLogger';
@@ -9,6 +9,24 @@ import prismaClient from '../../../lib/prisma/client';
 
 export async function fetchDocuments(): Promise<DocumentSchema[]> {
   try {
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name) => cookieStore.get(name)?.value,
+          set: () => {},
+          remove: () => {},
+        },
+      }
+    );
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Unauthorized');
+    }
+
     const documents = await prismaClient.document.findMany({
       include: {
         user: {
@@ -24,7 +42,7 @@ export async function fetchDocuments(): Promise<DocumentSchema[]> {
     });
 
     // Transform documents to match DocumentSchema
-    return documents.map(doc => ({
+    return documents.map((doc) => ({
       id: doc.id,
       title: doc.title,
       content: doc.content,
@@ -49,7 +67,18 @@ export async function fetchDocuments(): Promise<DocumentSchema[]> {
 export async function approveDocument(documentId: string): Promise<DocumentSchema> {
   try {
     // Get current user
-    const supabase = createServerActionClient({ cookies });
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name) => cookieStore.get(name)?.value,
+          set: () => {},
+          remove: () => {},
+        },
+      }
+    );
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       throw new Error('Unauthorized');
@@ -98,7 +127,18 @@ export async function approveDocument(documentId: string): Promise<DocumentSchem
 export async function deleteDocument(documentId: string): Promise<DocumentSchema> {
   try {
     // Get current user
-    const supabase = createServerActionClient({ cookies });
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name) => cookieStore.get(name)?.value,
+          set: () => {},
+          remove: () => {},
+        },
+      }
+    );
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       throw new Error('Unauthorized');

@@ -1,15 +1,16 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Prisma } from '@prisma/client'
+import { createClient } from '@supabase/supabase-js'
 
+// Augment the NodeJS global type
 declare global {
   var prisma: PrismaClient | undefined
 }
-
-let prisma: PrismaClient
 
 function createPrismaClient() {
   console.log("Creating new Prisma client");
   console.log("Database URL:", process.env.DATABASE_URL ? "Set" : "Not set");
   
+  // Create Prisma client
   const client = new PrismaClient({
     log: ['query', 'info', 'warn', 'error'],
     datasources: {
@@ -17,6 +18,30 @@ function createPrismaClient() {
         url: process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL
       }
     }
+  });
+
+  // Add middleware to handle auth headers
+  client.$use(async (params: Prisma.MiddlewareParams, next) => {
+    try {
+      // Get auth token from request context
+      const headers = (params.args as any)?.headers || {};
+      const authHeader = headers.Authorization;
+      
+      if (authHeader) {
+        // Pass through existing auth header
+        params.args = {
+          ...params.args,
+          headers: {
+            ...headers
+          }
+        };
+      }
+      
+    } catch (error) {
+      console.error("Error getting auth session:", error);
+    }
+
+    return next(params);
   });
 
   // Log connection details
@@ -66,16 +91,11 @@ function createPrismaClient() {
   return client;
 }
 
-if (process.env.NODE_ENV === 'production') {
-  prisma = createPrismaClient();
-} else {
-  if (!global.prisma) {
-    console.log("Initializing development Prisma client");
-    global.prisma = createPrismaClient();
-  } else {
-    console.log("Reusing existing Prisma client");
-  }
-  prisma = global.prisma;
+// Initialize Prisma Client
+const prisma = global.prisma || createPrismaClient();
+
+if (process.env.NODE_ENV !== 'production') {
+  global.prisma = prisma;
 }
 
 export default prisma;

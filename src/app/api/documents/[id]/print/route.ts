@@ -1,5 +1,6 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { createAdminClient } from '../../../../../lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 
@@ -10,17 +11,47 @@ export async function GET(
   try {
     const supabase = createRouteHandlerClient({ cookies });
 
-    // Get the document
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (!user || userError) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get document using admin client
+    const adminClient = createAdminClient();
+    const { data: document, error: documentError } = await adminClient
+      .from('Document')
       .select('*')
       .eq('id', params.id)
       .single();
 
-    if (documentError || !document) {
+    if (documentError) {
+      console.error('Error fetching document:', documentError);
+      return NextResponse.json(
+        { error: 'Failed to fetch document' },
+        { status: 500 }
+      );
+    }
+
+    if (!document) {
       return NextResponse.json(
         { error: 'Document not found' },
         { status: 404 }
+      );
+    }
+
+    // Check if user has permission to print this document
+    const userRole = user.user_metadata?.role || 'user';
+    const canPrint = document.userId === user.id || ['admin', 'supervisor'].includes(userRole);
+    
+    if (!canPrint) {
+      return NextResponse.json(
+        { error: 'You do not have permission to print this document' },
+        { status: 403 }
       );
     }
 
